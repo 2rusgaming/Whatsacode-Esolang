@@ -1,2 +1,4 @@
 # Whatsacode-Esolang
-This is the code runner of the esolang I just spent the past 32 hours making. I am going to leave a complete Hello World script in README to get everyone started.
+This is the code runner of the esolang I just spent the past 32 hours making. I am going to leave a complete Hello World script to get everyone started.
+A valid hello world script is:
+000000725c434a5f584a48444f4e2c564a4a584a48514f4e5c434a5f585f48444f4e5c434a5f584a5f5358595a355f4a4d4a48415a4e59434a5f584a48444a4b5c434a5a4f5d48444a5b5c434a5f584a48444f4e5c434a5f584f5d414f4e5c464c595e4c4e424a485a454c595e4c4e4158595c465d5a7361636f6465776861747361636f
