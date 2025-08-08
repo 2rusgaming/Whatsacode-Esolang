@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<title>Whatsacode Esolang Runner</title>
+<style>
+  body { font-family: monospace; background: #222; color: #eee; padding: 20px; }
+  textarea { width: 100%; height: 150px; background: #111; color: #0f0; font-family: monospace; }
+  button { margin-top: 10px; padding: 10px 20px; font-size: 16px; }
+  pre { background: #000; padding: 10px; min-height: 100px; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+
+<h1>Whatsacode Esolang Runner</h1>
+<p>Paste your Whatsacode string here:</p>
+<textarea id="hexInput" placeholder="Enter Whatsacode hex string"></textarea><br />
+<button onclick="runWhatsacode()">Run</button>
+
+<h2>Output:</h2>
+<pre id="output"></pre>
+
+<script>
+const KEY = new TextEncoder().encode("whatsacode");
+
+function hexToBytes(hex) {
+  if (hex.length % 2 !== 0) throw new Error("Invalid hex string");
+  const bytes = new Uint8Array(hex.length / 2);
+  for(let i = 0; i < hex.length; i += 2) {
+    bytes[i/2] = parseInt(hex.substr(i, 2), 16);
+  }
+  return bytes;
+}
+
+function xorCipher(data, key) {
+  const output = new Uint8Array(data.length);
+  for (let i = 0; i < data.length; i++) {
+    output[i] = data[i] ^ key[i % key.length];
+  }
+  return output;
+}
+
+function bytesToString(bytes) {
+  return new TextDecoder().decode(bytes);
+}
+
+function brainfuckRun(code) {
+  const tape = new Uint8Array(30000);
+  let ptr = 0;
+  let pc = 0;
+  const outputChars = [];
+  const loopStack = [];
+  const bracketMap = new Map();
+
+  // Precompute bracket pairs
+  const stack = [];
+  for (let i = 0; i < code.length; i++) {
+    if (code[i] === "[") stack.push(i);
+    else if (code[i] === "]") {
+      if (stack.length === 0) throw new Error("Unmatched ] at " + i);
+      const start = stack.pop();
+      bracketMap.set(start, i);
+      bracketMap.set(i, start);
+    }
+  }
+  if (stack.length > 0) throw new Error("Unmatched [ at " + stack.pop());
+
+  while (pc < code.length) {
+    const cmd = code[pc];
+    switch(cmd) {
+      case '>': ptr++; if (ptr >= tape.length) ptr = 0; break;
+      case '<': ptr--; if (ptr < 0) ptr = tape.length - 1; break;
+      case '+': tape[ptr] = (tape[ptr] + 1) & 255; break;
+      case '-': tape[ptr] = (tape[ptr] - 1) & 255; break;
+      case '.': outputChars.push(String.fromCharCode(tape[ptr])); break;
+      case ',': /* no input support */ break;
+      case '[':
+        if (tape[ptr] === 0) pc = bracketMap.get(pc);
+        break;
+      case ']':
+        if (tape[ptr] !== 0) pc = bracketMap.get(pc);
+        break;
+    }
+    pc++;
+  }
+  return outputChars.join('');
+}
+
+function runWhatsacode() {
+  const hexStr = document.getElementById("hexInput").value.trim();
+  try {
+    // Decode hex to bytes
+    const raw = hexToBytes(hexStr);
+
+    // First 4 bytes is length prefix (big-endian)
+    const length = (raw[0] << 24) | (raw[1] << 16) | (raw[2] << 8) | raw[3];
+
+    // Slice encrypted data after length prefix
+    const encrypted = raw.slice(4);
+
+    // XOR decode
+    const decrypted = xorCipher(encrypted, KEY);
+
+    // Cut decrypted data to original length
+    const bfBytes = decrypted.slice(0, length);
+
+    // Decode BF string
+    const bfCode = bytesToString(bfBytes);
+
+    // Run Brainfuck
+    const output = brainfuckRun(bfCode);
+
+    document.getElementById("output").textContent = output;
+  } catch(e) {
+    document.getElementById("output").textContent = "Error: " + e.message;
+  }
+}
+</script>
+
+</body>
+</html>
